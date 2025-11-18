@@ -1,4 +1,3 @@
-dockerfile
 # Intentionally vulnerable Docker image for security scanning demonstration
 FROM node:14.15.0
 
