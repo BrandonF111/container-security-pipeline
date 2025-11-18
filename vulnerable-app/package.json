@@ -1,0 +1,16 @@
+json
+{
+  "name": "vulnerable-demo-app",
+  "version": "1.0.0",
+  "description": "Intentionally vulnerable app for security scanning demo",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "4.16.0",
+    "lodash": "4.17.19",
+    "axios": "0.21.0",
+    "jsonwebtoken": "8.5.0"
+  }
+}
