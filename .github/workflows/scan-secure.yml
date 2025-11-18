@@ -2,12 +2,15 @@ name: Security Scan - Secure Image
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - develop
     paths:
       - 'vulnerable-app/**'
       - '.github/workflows/scan-secure.yml'
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -15,73 +18,61 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build secure image
-      run: |
-        docker build -f vulnerable-app/Dockerfile.secure \
-          -t secure-demo:latest \
-          vulnerable-app/
+      - name: Build secure image
+        run: |
+          docker build -f vulnerable-app/Dockerfile.secure -t secure-demo:latest vulnerable-app/
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'secure-demo:latest'
-        format: 'table'
-        exit-code: '1'  # Fail if vulnerabilities found
-        severity: 'CRITICAL,HIGH'
-        output: 'trivy-report-secure.txt'
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: secure-demo:latest
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          output: trivy-report-secure.txt
 
-    - name: Run Trivy - JSON output
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'secure-demo:latest'
-        format: 'json'
-        output: 'trivy-report-secure.json'
-        severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+      - name: Run Trivy JSON output
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: secure-demo:latest
+          format: json
+          output: trivy-report-secure.json
+          severity: CRITICAL,HIGH,MEDIUM,LOW
 
-    - name: Security policy check
-      run: |
-        CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-report-secure.json)
-        HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-report-secure.json)
-        
-        echo "Critical vulnerabilities: $CRITICAL_COUNT"
-        echo "High vulnerabilities: $HIGH_COUNT"
-        
-        if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 5 ]; then
-          echo "✅ Security policy passed: Image is safe to deploy"
-        else
-          echo "❌ Security policy failed: Image has too many vulnerabilities"
-          exit 1
-        fi
+      - name: Security policy check
+        run: |
+          CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-report-secure.json)
+          HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-report-secure.json)
+          echo "Critical vulnerabilities: $CRITICAL_COUNT"
+          echo "High vulnerabilities: $HIGH_COUNT"
+          if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 5 ]; then
+            echo "Security policy passed: Image is safe to deploy"
+          else
+            echo "Security policy failed: Image has too many vulnerabilities"
+            exit 1
+          fi
 
-    - name: Docker Scout comparison
-      uses: docker/scout-action@v1
-      with:
-        command: compare
-        image: secure-demo:latest
-        to: vulnerable-demo:latest
-        exit-code: false
+      - name: Upload secure image report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-secure-report
+          path: |
+            trivy-report-secure.txt
+            trivy-report-secure.json
 
-    - name: Upload secure image report
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: trivy-secure-report
-        path: |
-          trivy-report-secure.txt
-          trivy-report-secure.json
-
-    - name: Display summary
-      run: |
-        echo "## Security Scan Results - Secure Image" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Remediated Image Analysis" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Image: secure-demo:latest" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        cat trivy-report-secure.txt >> $GITHUB_STEP_SUMMARY
+      - name: Display summary
+        run: |
+          echo "## Security Scan Results - Secure Image" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Remediated Image Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Image: secure-demo:latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat trivy-report-secure.txt >> $GITHUB_STEP_SUMMARY
