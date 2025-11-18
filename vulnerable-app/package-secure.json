@@ -1,0 +1,15 @@
+{
+  "name": "secure-demo-app",
+  "version": "1.0.0",
+  "description": "Secure version with updated dependencies",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "axios": "^1.6.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
