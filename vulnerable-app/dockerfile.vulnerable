@@ -1,0 +1,22 @@
+dockerfile
+# Intentionally vulnerable Docker image for security scanning demonstration
+FROM node:14.15.0
+
+# Security issue: Running as root user
+WORKDIR /app
+
+# Security issue: Hardcoded environment variable
+ENV API_KEY=abc123-secret-key-xyz789
+
+# Copy application files
+COPY package.json .
+COPY app.js .
+
+# Install dependencies (includes vulnerable packages)
+RUN npm install
+
+# Security issue: Exposing unnecessary port information
+EXPOSE 3000
+
+# Security issue: Running as root
+CMD ["node", "app.js"]
