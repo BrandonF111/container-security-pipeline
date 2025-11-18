@@ -11,8 +11,8 @@ ENV API_KEY=abc123-secret-key-xyz789
 COPY package.json .
 COPY app.js .
 
-# Install dependencies (includes vulnerable packages)
-RUN npm install
+# Install dependencies (use legacy peer deps to avoid conflicts)
+RUN npm install --legacy-peer-deps
 
 # Security issue: Exposing unnecessary port information
 EXPOSE 3000
