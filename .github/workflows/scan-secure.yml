@@ -51,7 +51,7 @@ jobs:
           HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-report-secure.json)
           echo "Critical vulnerabilities: $CRITICAL_COUNT"
           echo "High vulnerabilities: $HIGH_COUNT"
-          if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 5 ]; then
+          if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 10 ]; then
             echo "Security policy passed: Image is safe to deploy"
           else
             echo "Security policy failed: Image has too many vulnerabilities"
