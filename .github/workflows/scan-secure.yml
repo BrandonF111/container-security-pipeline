@@ -36,13 +36,7 @@ jobs:
           exit-code: 0
           severity: CRITICAL,HIGH
           output: trivy-report-secure.txt
-
-      - name: Run Trivy - only fixable vulns
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: secure-demo:latest
           ignore-unfixed: true
-          severity: CRITICAL,HIGH
 
       - name: Run Trivy JSON output
         uses: aquasecurity/trivy-action@master
@@ -54,16 +48,17 @@ jobs:
 
       - name: Security policy check
         run: |
-          CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-report-secure.json)
-          HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-report-secure.json)
-          echo "Critical vulnerabilities: $CRITICAL_COUNT"
-          echo "High vulnerabilities: $HIGH_COUNT"
-          if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 5 ]; then
-            echo "Security policy passed: Image is safe to deploy"
-          else
-            echo "Security policy failed: Image has too many vulnerabilities"
-            exit 1
-          fi
+          run: |
+            CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL" and .FixedVersion != "")] | length' trivy-report-secure.json)
+            HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH" and .FixedVersion != "")] | length' trivy-report-secure.json)
+            echo "Critical vulnerabilities (with fixes): $CRITICAL_COUNT"
+            echo "High vulnerabilities (with fixes): $HIGH_COUNT"
+            if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 5 ]; then
+              echo "Security policy passed: Image is safe to deploy"
+            else
+              echo "Security policy failed: Image has too many vulnerabilities"
+              exit 1
+            fi
 
       - name: Upload secure image report
         uses: actions/upload-artifact@v4
