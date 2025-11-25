@@ -32,11 +32,17 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: secure-demo:latest
-          ignore-unfixed: true
           format: table
           exit-code: 0
           severity: CRITICAL,HIGH
           output: trivy-report-secure.txt
+
+      - name: Run Trivy - only fixable vulns
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: vulnerable-demo:latest
+          ignore-status: will_not_fix
+          severity: CRITICAL,HIGH
 
       - name: Run Trivy JSON output
         uses: aquasecurity/trivy-action@master
