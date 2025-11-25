@@ -41,7 +41,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: vulnerable-demo:latest
-          ignore-status: will_not_fix
+          ignore-unfixed: true
           severity: CRITICAL,HIGH
 
       - name: Run Trivy JSON output
