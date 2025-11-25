@@ -40,7 +40,7 @@ jobs:
       - name: Run Trivy - only fixable vulns
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: vulnerable-demo:latest
+          image-ref: secure-demo:latest
           ignore-unfixed: true
           severity: CRITICAL,HIGH
 
