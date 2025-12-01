@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  scan-secure-image:
+  scan-vulnerable-image:
     runs-on: ubuntu-latest
     
     steps:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build secure image
+      - name: Build vulnerable python image
         run: |
           docker build -f vulnerable-app/dockerfile.python-vulnerable -t pythonapp-demo:latest vulnerable-app/
 
@@ -48,8 +48,8 @@ jobs:
 
       - name: Security policy check
         run: |
-          CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL" and .FixedVersion != "")] | length' trivy-report-secure.json)
-          HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH" and .FixedVersion != "")] | length' trivy-report-secure.json)
+          CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL" and .FixedVersion != "")] | length' trivy-report-python.json)
+          HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH" and .FixedVersion != "")] | length' trivy-report-python.json)
           echo "Critical vulnerabilities (with fixes): $CRITICAL_COUNT"
           echo "High vulnerabilities (with fixes): $HIGH_COUNT"
           if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -lt 5 ]; then
@@ -59,7 +59,7 @@ jobs:
             exit 1
           fi
 
-      - name: Upload secure image report
+      - name: Upload vulnerable python image report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -70,10 +70,10 @@ jobs:
 
       - name: Display summary
         run: |
-          echo "## Security Scan Results - Secure Image" >> $GITHUB_STEP_SUMMARY
+          echo "## Security Scan Results - Vulnerable Python Image" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Remediated Image Analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Image: secure-demo:latest" >> $GITHUB_STEP_SUMMARY
+          echo "Image: pythonapp-demo:latest" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          cat trivy-report-secure.txt >> $GITHUB_STEP_SUMMARY
+          cat trivy-python-vulnerable.txt >> $GITHUB_STEP_SUMMARY
