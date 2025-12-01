@@ -36,14 +36,14 @@ jobs:
           format: table
           exit-code: 0
           severity: CRITICAL,HIGH
-          output: trivy-report-secure.txt
+          output: trivy-python-vulnerable.txt
 
       - name: Run Trivy JSON output
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: pythonapp-demo:latest
           format: json
-          output: trivy-report-secure.json
+          output: trivy-report-python.json
           severity: CRITICAL,HIGH,MEDIUM,LOW
 
       - name: Security policy check
@@ -63,10 +63,10 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: trivy-secure-report
+          name: trivy-python-vulnerable-report
           path: |
-            trivy-report-secure.txt
-            trivy-report-secure.json
+            trivy-python-vulnerable.txt
+            trivy-report-python.json
 
       - name: Display summary
         run: |
