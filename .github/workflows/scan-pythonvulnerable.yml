@@ -11,6 +11,7 @@ on:
   pull_request:
     branches:
       - main
+      - devlop
   workflow_dispatch:
 
 jobs:
@@ -26,12 +27,12 @@ jobs:
 
       - name: Build secure image
         run: |
-          docker build -f vulnerable-app/dockerfile.python-vulnerable -t secure-demo:latest vulnerable-app/
+          docker build -f vulnerable-app/dockerfile.python-vulnerable -t pythonapp-demo:latest vulnerable-app/
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: secure-demo:latest
+          image-ref: pythonapp-demo:latest
           format: table
           exit-code: 0
           severity: CRITICAL,HIGH
@@ -40,7 +41,7 @@ jobs:
       - name: Run Trivy JSON output
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: secure-demo:latest
+          image-ref: pythonapp-demo:latest
           format: json
           output: trivy-report-secure.json
           severity: CRITICAL,HIGH,MEDIUM,LOW
