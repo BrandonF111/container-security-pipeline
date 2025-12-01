@@ -1,4 +1,4 @@
-name: Security Scan - Secure Image
+name: Security Scan - Python Vulnerable Image
 
 on:
   push:
