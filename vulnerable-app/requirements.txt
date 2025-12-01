@@ -1,4 +1,4 @@
 # requirements.txt (old versions)
 flask==1.1.1
 requests==2.20.0
-jinja2==2.10.0
+jinja2==2.10.1
