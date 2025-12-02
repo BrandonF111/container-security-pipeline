@@ -20,6 +20,7 @@ jobs:
       - name: Run Grype scan
         run: |
           grype javaapp:latest -o json > grype-results.json
+          grype javaapp:latest -o table > grype-results.txt
           grype javaapp:latest -o table
 
       - name: Check vulnerability thresholds
@@ -47,4 +48,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: grype-results
-          path: grype-results.json
+          path: |
+            grype-results.json
+            grype-results.txt
