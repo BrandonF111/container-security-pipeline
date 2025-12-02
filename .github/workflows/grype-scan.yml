@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t javaapp:latest -f ./vulnerable-app/dockerfile.secure ./vulnerable-app
+        run: docker build -t javaapp:latest -f ./vulnerable-app/Dockerfile.secure ./vulnerable-app
 
       - name: Install Grype
         run: |
