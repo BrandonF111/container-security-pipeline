@@ -29,9 +29,9 @@ jobs:
 
       - name: Run Grype scan
         run: |
-          grype $ {{inputs.image_name }} -o json > grype-results.json
-          grype {{inputs.image_name }} -o table> grype-results.txt
-          grype {{inputs.image_name }} -o table
+          grype ${{inputs.image_name }} -o json > grype-results.json
+          grype ${{inputs.image_name }} -o table> grype-results.txt
+          grype ${{inputs.image_name }} -o table
 
       - name: Check vulnerability thresholds
         run: |
