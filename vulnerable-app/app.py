@@ -12,7 +12,7 @@ def home():
         <li>Flask 2.0.1</li>
         <li>requests 2.25.1</li>
         <li>urllib3 1.26.4</li>
-        <li>Jinja2 2.11.3</li>
+        <li>Jinja2 3.0</li>
         <li>cryptography 3.3.2</li>
     </ul>
     """
