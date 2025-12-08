@@ -1,8 +1,16 @@
 name: Grype Security Scan
 
 on:
-  push:
-    branches: main
+  workflow_dispatch:
+    inputs:
+      dockerfile_path:
+        description: 'Path to Dockerfile (i.e. ./vulnerable-app/dockerfile.secure)'
+        required: true
+        type: string
+      image_name:
+        description: 'Name for the Docker image (i.e., myapp:latest)'
+        required: true
+        type: string
 
 jobs:
   scan:
@@ -11,7 +19,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t javaapp:latest -f ./vulnerable-app/Dockerfile.secure ./vulnerable-app
+        run: |
+          DOCKERFILE_DIR=$(dirname ${{ inputs.dockerfile_path }}
+          docker build -t ${{ inputs.image_name }} -f ${{ inputs.dockerfile_path }}
 
       - name: Install Grype
         run: |
@@ -19,9 +29,9 @@ jobs:
 
       - name: Run Grype scan
         run: |
-          grype javaapp:latest -o json > grype-results.json
-          grype javaapp:latest -o table > grype-results.txt
-          grype javaapp:latest -o table
+          grype $ {{inputs,image_name }} -o json > grype-results.json
+          grype {{inputs,image_name }} -o table> grype-results.txt
+          grype {{inputs,image_name }} -o table
 
       - name: Check vulnerability thresholds
         run: |
