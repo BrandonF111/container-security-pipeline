@@ -1,0 +1,21 @@
+# Using an older Python version with known vulnerabilities
+FROM python:3.9.7-slim
+
+WORKDIR /app
+
+# Copy application files
+COPY . /app
+
+# Install older versions of packages with known vulnerabilities
+RUN pip install --no-cache-dir \
+    Flask==2.0.1 \
+    requests==2.25.1 \
+    urllib3==1.26.4 \
+    Jinja2==2.11.3 \
+    cryptography==3.3.2
+
+# Expose port
+EXPOSE 5000
+
+# Run the application
+CMD ["python", "app.py"]
