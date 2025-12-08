@@ -20,8 +20,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Build Docker image
         run: |
-          DOCKERFILE_DIR=$(dirname ${{ inputs.dockerfile_path }}
-          docker build -t ${{ inputs.image_name }} -f ${{ inputs.dockerfile_path }}
+          DOCKERFILE_DIR=$(dirname ${{ inputs.dockerfile_path }})
+          docker build -t ${{ inputs.image_name }} -f ${{ inputs.dockerfile_path }} $DOCKERFILE_DIR
 
       - name: Install Grype
         run: |
