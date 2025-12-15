@@ -36,7 +36,6 @@ jobs:
           exit-code: 0
           severity: CRITICAL,HIGH
           output: trivy-report-secure.txt
-          ignore-unfixed: true
 
       - name: Run Trivy JSON output
         uses: aquasecurity/trivy-action@master
@@ -44,7 +43,6 @@ jobs:
           image-ref: secure-demo:latest
           format: json
           output: trivy-report-secure.json
-          ignore-unfixed: true
           severity: CRITICAL,HIGH,MEDIUM,LOW
 
       - name: Security policy check
