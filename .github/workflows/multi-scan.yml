@@ -1,0 +1,187 @@
+name: Multi-Scanner Container Security
+
+on:
+  workflow_dispatch:
+    inputs:
+      dockerfile_path:
+        description: 'Path to Dockerfile (i.e. ./vulnerable-app/dockerfile.secure)'
+        required: true
+        type: string
+      image_name:
+        description: 'Name for the Docker image (i.e., myapp:latest)'
+        required: true
+        type: string
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Build Docker image
+        run: |
+          DOCKERFILE_DIR=$(dirname ${{ inputs.dockerfile_path }})
+          docker build -t ${{ inputs.image_name }} -f ${{ inputs.dockerfile_path }} $DOCKERFILE_DIR
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install Trivy
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+      - name: Run Grype scan
+        run: |
+          grype ${{inputs.image_name }} -o json > grype-results.json
+          grype ${{inputs.image_name }} -o table> grype-results.txt
+          grype ${{inputs.image_name }} -o table
+
+      - name: Run Trivy Scan
+        run: |
+          trivy image --format json --output trivy-results.json ${{ inputs.image_name }}
+          trivy image --format table --output trivy-results.txt ${{ inputs.image_name }}
+          trivy image ${{ inputs.image_name }}
+
+      - name: Extract vulnerability counts
+        id: counts
+        run: |
+          # Grype counts
+          GRYPE_CRITICAL=$(jq '[.matches[] | select(.vulnerability.severity=="Critical")] | length' grype-results.json)
+          GRYPE_HIGH=$(jq '[.matches[] | select(.vulnerability.severity=="High")] | length' grype-results.json)
+          GRYPE_MEDIUM=$(jq '[.matches[] | select(.vulnerability.severity=="Medium")] | length' grype-results.json)
+          GRYPE_LOW=$(jq '[.matches[] | select(.vulnerability.severity=="Low")] | length' grype-results.json)
+          
+          # Trivy counts
+          TRIVY_CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-results.json)
+          TRIVY_HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-results.json)
+          TRIVY_MEDIUM=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length' trivy-results.json)
+          TRIVY_LOW=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="LOW")] | length' trivy-results.json)
+          
+          # Save to outputs
+          echo "grype_critical=$GRYPE_CRITICAL" >> $GITHUB_OUTPUT
+          echo "grype_high=$GRYPE_HIGH" >> $GITHUB_OUTPUT
+          echo "trivy_critical=$TRIVY_CRITICAL" >> $GITHUB_OUTPUT
+          echo "trivy_high=$TRIVY_HIGH" >> $GITHUB_OUTPUT
+
+      - name: Display comparison summary
+        run: |
+          echo "## Vulnerability Comparison: Grype vs Trivy"
+          echo ""
+          echo "| Severity | Grype | Trivy |"
+          echo "|----------|-------|-------|"
+          echo "| Critical | ${{ steps.counts.outputs.grype_critical }} | ${{ steps.counts.outputs.trivy_critical }} |"
+          echo "| High     | ${{ steps.counts.outputs.grype_high }} | ${{ steps.counts.outputs.trivy_high }} |"
+
+      - name: Extract CVE lists
+        run: |
+          # Extract Grype CVEs
+          jq -r '.matches[].vulnerability.id' grype-results.json | sort | uniq > grype-cves.txt
+          
+          # Extract Trivy CVEs
+          jq -r '.Results[]?.Vulnerabilities[]?.VulnerabilityID' trivy-results.json | sort | uniq > trivy-cves.txt
+
+      - name: Compare CVE findings
+        run: |
+          # Find CVEs only in Grype
+          comm -23 grype-cves.txt trivy-cves.txt > grype-only-cves.txt
+          
+          # Find CVEs only in Trivy
+          comm -23 trivy-cves.txt grype-cves.txt > trivy-only-cves.txt
+          
+          # Find CVEs found by both
+          comm -12 grype-cves.txt trivy-cves.txt > common-cves.txt
+
+      - name: Create comparison report
+        run: |
+          cat > scanner-comparison.txt << 'EOF'
+          ========================================
+          VULNERABILITY SCANNER COMPARISON REPORT
+          ========================================
+          
+          Grype vs Trivy Analysis
+          Image: ${{ inputs.image_name }}
+          
+          VULNERABILITY COUNTS BY SEVERITY:
+          ---------------------------------
+          Severity  | Grype | Trivy
+          Critical  | ${{ steps.counts.outputs.grype_critical }} | ${{ steps.counts.outputs.trivy_critical }}
+          High      | ${{ steps.counts.outputs.grype_high }} | ${{ steps.counts.outputs.trivy_high }}
+          
+          CVE DISCOVERY COMPARISON:
+          ------------------------
+          EOF
+          
+          echo "Total unique CVEs found by Grype: $(wc -l < grype-cves.txt)" >> scanner-comparison.txt
+          echo "Total unique CVEs found by Trivy: $(wc -l < trivy-cves.txt)" >> scanner-comparison.txt
+          echo "CVEs found by both scanners: $(wc -l < common-cves.txt)" >> scanner-comparison.txt
+          echo "CVEs only found by Grype: $(wc -l < grype-only-cves.txt)" >> scanner-comparison.txt
+          echo "CVEs only found by Trivy: $(wc -l < trivy-only-cves.txt)" >> scanner-comparison.txt
+          echo "" >> scanner-comparison.txt
+          
+          echo "CVES ONLY FOUND BY GRYPE:" >> scanner-comparison.txt
+          echo "------------------------" >> scanner-comparison.txt
+          cat grype-only-cves.txt >> scanner-comparison.txt
+          echo "" >> scanner-comparison.txt
+          
+          echo "CVES ONLY FOUND BY TRIVY:" >> scanner-comparison.txt
+          echo "------------------------" >> scanner-comparison.txt
+          cat trivy-only-cves.txt >> scanner-comparison.txt
+
+      - name: Upload scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-results
+          path: |
+            grype-results.json
+            grype-results.txt
+            trivy-results.json
+            trivy-results.txt
+            scanner-comparison.txt
+            grype-only-cves.txt
+            trivy-only-cves.txt
+            common-cves.txt
+
+      - name: Check vulnerability thresholds
+        run: |
+          GRYPE_CRITICAL=${{ steps.counts.outputs.grype_critical }}
+          GRYPE_HIGH=${{ steps.counts.outputs.grype_high }}
+          TRIVY_CRITICAL=${{ steps.counts.outputs.trivy_critical }}
+          TRIVY_HIGH=${{ steps.counts.outputs.trivy_high }}
+          
+          echo "Grype - Critical: $GRYPE_CRITICAL, High: $GRYPE_HIGH"
+          echo "Trivy - Critical: $TRIVY_CRITICAL, High: $TRIVY_HIGH"
+          
+          FAILED=0
+          
+          # Check Grype thresholds
+          if [ "$GRYPE_CRITICAL" -gt 1 ]; then
+            echo "❌ FAILED: Grype found $GRYPE_CRITICAL critical vulnerabilities (threshold: 1)"
+            FAILED=1
+          fi
+          
+          if [ "$GRYPE_HIGH" -gt 5 ]; then
+            echo "❌ FAILED: Grype found $GRYPE_HIGH high vulnerabilities (threshold: 5)"
+            FAILED=1
+          fi
+          
+          # Check Trivy thresholds
+          if [ "$TRIVY_CRITICAL" -gt 1 ]; then
+            echo "❌ FAILED: Trivy found $TRIVY_CRITICAL critical vulnerabilities (threshold: 1)"
+            FAILED=1
+          fi
+          
+          if [ "$TRIVY_HIGH" -gt 5 ]; then
+            echo "❌ FAILED: Trivy found $TRIVY_HIGH high vulnerabilities (threshold: 5)"
+            FAILED=1
+          fi
+          
+          if [ "$FAILED" -eq 1 ]; then
+            exit 1
+          fi
+          
+          echo "✅ PASSED: All vulnerability counts within acceptable thresholds for both scanners"
